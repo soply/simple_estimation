@@ -8,7 +8,7 @@ sys.path.insert(0, '../../sdr_toolbox/')
 
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LinearRegression
+from sklearn.isotonic import IsotonicRegression
 from sdr_toolbox.sdr_estimators.sir import sir
 
 
@@ -39,8 +39,9 @@ class SIRIsoReg(BaseEstimator, RegressorMixin):
         n_samples, n_features = X.shape
         self.sir_space_ = sir(X.T, y, d = 1, n_levelsets = self.n_levelsets,
                               rescale = self.rescale, return_mat = False)
-        self.XT_ = (self.sir_space_.T.dot(X.T)).T
-        self.isoReg_ = IsotonicRegression()
+        self.XT_ = (self.sir_space_.T.dot(X.T)).T[:,0]
+        self.isoReg_ = IsotonicRegression(increasing = 'auto',
+                                          out_of_bounds = 'clip')
         self.isoReg_ = self.isoReg_.fit(self.XT_,y)
         return self
 
@@ -50,5 +51,5 @@ class SIRIsoReg(BaseEstimator, RegressorMixin):
             getattr(self, "sir_space_")
         except AttributeError:
             raise RuntimeError("You must train estimator before predicting data!")
-        XT = (self.sir_space_.T.dot(X.T)).T
+        XT = (self.sir_space_.T.dot(X.T)).T[:,0]
         return self.isoReg_.predict(XT)
