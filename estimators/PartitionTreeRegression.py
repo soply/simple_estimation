@@ -5,9 +5,61 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
 from sklearn.svm import LinearSVC
+from sklearn.model_selection import KFold, ShuffleSplit
+from sklearn.metrics import mean_squared_error
 
 
 __available_methods__ = ['pca_tree', 'kd_tree', 'rp_tree', '2M_tree']
+
+
+class CrossvalidatedRegressionTree(BaseEstimator, RegressorMixin):
+    """ Crossvalidates on all tree levels without rebuilding the whole tree. Faster
+    then using RegressionTree in combination with GridSearch CV (needs to rebuild
+    tree). """
+
+
+    def __init__(self, method = 'pca_tree', height = 0,
+                 minLeafSize = 5, n_cv_splits = 10, test_levels = [0]):
+        self.height = height
+        self.method = method
+        self.minLeafSize = minLeafSize
+        self.n_cv_splits = n_cv_splits
+        self.test_levels = test_levels
+        self.Ymean_ = None
+        self.left_ = None
+        self.right_ = None
+        self.v_classifier_ = None
+        self.t_classifier_ = None
+        self.tree_ = RegressionTree(method = method, predict_level = 0,
+            height = height, minLeafSize = minLeafSize)
+        self.cved_level_ = 0
+
+
+    def fit(self, X, Y):
+        # Build tree and crossvalidate for the best level
+        kf = ShuffleSplit(n_splits = self.n_cv_splits, test_size = 0.1)
+        errors = np.zeros((len(self.test_levels), self.n_cv_splits))
+        split_iter = 0
+        for idx_train, idx_cv in kf.split(X):
+            X_train, Y_train = X[idx_train,:], Y[idx_train]
+            X_cv, Y_cv = X[idx_cv,:], Y[idx_cv]
+            self.tree_.fit(X_train, Y_train)
+            for j, level in enumerate(self.test_levels):
+                # Adjust prediction level w/o refitting the tree
+                self.tree_._change_prediction_level(level)
+                # Compare to true values2
+                errors[j, split_iter] =  mean_squared_error(self.tree_.predict(X_cv), Y_cv)
+            split_iter += 1
+        avg_errors = np.mean(errors, axis = 1)
+        self.cved_level_ = np.argmin(avg_errors)
+        # Refit tree on the whole data set with cv'ed level
+        self.tree_.fit(X, Y)
+        self.tree_._change_prediction_level(level)
+        return self
+
+    def predict(self, Z):
+        return self.tree_.predict(Z)
+
 
 
 class RegressionTree(BaseEstimator, RegressorMixin):
@@ -85,6 +137,14 @@ class RegressionTree(BaseEstimator, RegressorMixin):
         labels = np.zeros(Z.shape[0]).astype('int')
         labels[projections > self.t_classifier_] = 1
         return labels
+
+    def _change_prediction_level(self, new_level):
+        self.predict_level = new_level
+        if self.left_ is not None:
+            self.left_._change_prediction_level(new_level)
+        if self.right_ is not None:
+            self.right_._change_prediction_level(new_level)
+
 
 
 def split(X, Y, method):
@@ -186,7 +246,7 @@ if __name__ == "__main__":
     from handler_UCI_Concrete import read_all
     data = read_all(scaling = 'MeanVar')
     X, Y = data[:,:-1], data[:,-1]
-    tree = RegressionTree(method = 'rp_tree', predict_level = 8, height = 0,
-                          minLeafSize = 5)
+    tree = CrossvalidatedRegressionTree(method = 'rp_tree', height = 0,
+                          minLeafSize = 5, test_levels = [0,1,2,3,4,5,6,7,8,9,10,11])
     tree = tree.fit(X, Y)
-    tree.predict(X[0:1,:])
+    print tree.predict(X[0:1,:])
