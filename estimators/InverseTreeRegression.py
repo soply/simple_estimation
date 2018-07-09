@@ -55,8 +55,8 @@ class CrossvalidatedInverseRegressionTree(BaseEstimator, RegressorMixin):
         self.tree_._change_prediction_level(self.cved_level_)
         return self
 
-    def predict(self, Z):
-        return self.tree_.predict(Z)
+    def predict(self, Z, level = None):
+        return self.tree_.predict(Z, level)
 
 
 class InverseRegressionTree(BaseEstimator, RegressorMixin):
@@ -109,22 +109,24 @@ class InverseRegressionTree(BaseEstimator, RegressorMixin):
         return self
 
 
-    def predict(self, Z):
-        if self.height == self.predict_level or self.left_ is None or self.right_ is None:
+    def predict(self, Z, level = None):
+        if level is None:
+            level = self.predict_level
+        if self.height == level or self.left_ is None or self.right_ is None:
             try:
                 getattr(self, "Ymean_")
             except AttributeError:
                 raise RuntimeError("You must train estimator before predicting data!")
             # decide here if correct height, or leaf does not have children
             return np.ones(Z.shape[0]) * self.Ymean_
-        elif self.height < self.predict_level:
+        elif self.height < level:
             # pass to left or right node, depending on classifier
             label = self._child(Z)
             retr = np.zeros(Z.shape[0])
             if len(np.where(~label)[0]) > 0:
-                retr[~label] = self.left_.predict(Z[~label,:])
+                retr[~label] = self.left_.predict(Z[~label,:], level)
             if len(np.where(label)[0]) > 0:
-                retr[label] = self.right_.predict(Z[label,:])
+                retr[label] = self.right_.predict(Z[label,:], level)
             return retr
         else:
             raise RuntimeError("Something went wrong")
