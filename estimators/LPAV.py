@@ -88,7 +88,6 @@ class LPAV(BaseEstimator, RegressorMixin):
         result = qp(PP, qq, G_mat, hh, solver = self.solver)
         self.X_ = np.reshape(X, (N))
         self.newy_ = np.array(result['x'])[:,0]
-        import pdb; pdb.set_trace()
         return self
 
 

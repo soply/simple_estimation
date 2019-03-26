@@ -48,7 +48,6 @@ class SlisotronCV(BaseEstimator, RegressorMixin):
         best_err = self.hold_out_error_[0]
         iter_ctr = 1
         while iter_ctr < self.max_iter:
-            print iter_ctr, self.hold_out_error_[iter_ctr - 1]
             y_train_new = isreg.predict(index.dot(X_train.T))
             index = index + np.mean((X_train.T * (y_train - y_train_new)).T, axis = 0)
             isreg = isreg.fit(index.dot(X_train.T), y_train)
