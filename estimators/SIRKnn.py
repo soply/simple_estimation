@@ -7,9 +7,13 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsRegressor
 
+# Full path
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.insert(0, dir_path + '/../../../sdr_toolbox/')
+
 from sdr_toolbox.sdr_estimators.sir import sir
 
-sys.path.insert(0, '../../sdr_toolbox/')
 
 
 
@@ -33,9 +37,12 @@ class SIRKnn(BaseEstimator, RegressorMixin):
         for arg, val in values.items():
             setattr(self, arg, val)
 
+
     def fit(self, X, y=None):
         """
         """
+        if self.n_components > self.n_levelsets:
+            raise RuntimeError("n_components = {0} > {1} = n_levelsets".format(self.n_components, self.n_levelsets))
         n_samples, n_features = X.shape
         self.SIR_space_ = sir(X.T, y, d = self.n_components,
                               n_levelsets = self.n_levelsets,
@@ -45,6 +52,7 @@ class SIRKnn(BaseEstimator, RegressorMixin):
                                         n_jobs = self.n_jobs)
         self.knn_ = self.knn_.fit(self.XT_, y)
         return self
+
 
     def predict(self, X, y=None):
         try:

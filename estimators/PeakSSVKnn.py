@@ -6,10 +6,12 @@ import sys
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.neighbors import KNeighborsRegressor
 
-from sdr_toolbox.sdr_estimators.peakSSV import peakSSV
+# Full path
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
-sys.path.insert(0, '../../sdr_toolbox/')
-sys.path.insert(0, '../../svm_denoise/')
+sys.path.insert(0, dir_path + '/../../../sdr_toolbox/')
+
+from sdr_toolbox.sdr_estimators.peakSSV import peakSSV
 
 
 

@@ -33,7 +33,7 @@ class LPAV(BaseEstimator, RegressorMixin):
         # Set attributes of object to the same name as given in the argument list.
         args, _, _, values = inspect.getargvalues(inspect.currentframe())
         values.pop("self")
-        solvers.options['show_progress'] = False
+        # solvers.options['show_progress'] = False
         for arg, val in values.items():
             setattr(self, arg, val)
 
@@ -88,6 +88,7 @@ class LPAV(BaseEstimator, RegressorMixin):
         result = qp(PP, qq, G_mat, hh, solver = self.solver)
         self.X_ = np.reshape(X, (N))
         self.newy_ = np.array(result['x'])[:,0]
+        import pdb; pdb.set_trace()
         return self
 
 
